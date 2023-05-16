@@ -1,5 +1,5 @@
 {
-  description = "srid/haskell-template: Nix template for Haskell projects";
+  description = "LTL: Nix template for Haskell projects";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
@@ -84,14 +84,14 @@
           run = {
             description = "Run the project with ghcid auto-recompile";
             exec = ''
-              ghcid -c "cabal repl exe:haskell-template" --warnings -T :main
+              ghcid -c "cabal repl exe:ltl" --warnings -T :main --reload ./lib --reload ./src
             '';
             category = "Primary";
           };
         };
 
         # Default package.
-        packages.default = self'.packages.main-haskell-template;
+        packages.default = self'.packages.main-ltl;
 
         # Default shell.
         devShells.default =
