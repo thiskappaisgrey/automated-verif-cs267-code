@@ -1,12 +1,11 @@
 module Main where
 
+import Boolean qualified
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
 import Main.Utf8 qualified as Utf8
-import Prelude hiding (State)
 import TransitionSystem
-import qualified Boolean
-
+import Prelude hiding (State)
 
 -- TODO prob easier to do stuff with a dictionary instead..
 
@@ -15,47 +14,47 @@ import qualified Boolean
 p4System :: TransitionSystem
 p4System =
   TransitionSystem
-    { states = map State [0 .. 3],
-      transitions = map (bimap State State) [(0, 1), (1, 2), (2, 3), (1, 0), (3, 3)],
-      labeling = labels
+    { states = map State [0 .. 3]
+    , transitions = map (bimap State State) [(0, 1), (1, 2), (2, 3), (1, 0), (3, 3)]
+    , labeling = labels
     }
   where
     labels =
       Map.fromList
-        [ (State 0, Set.fromList [Prop "p"]),
-          (State 1, Set.fromList [Prop "p", Prop "q"]),
-          (State 2, Set.fromList [Prop "p"]),
-          (State 3, Set.fromList [Prop "q"])
+        [ (State 0, Set.fromList [Prop "p"])
+        , (State 1, Set.fromList [Prop "p", Prop "q"])
+        , (State 2, Set.fromList [Prop "p"])
+        , (State 3, Set.fromList [Prop "q"])
         ]
 
 exSystem :: TransitionSystem
 exSystem =
   TransitionSystem
-    { states = map State [1 .. 4],
-      transitions = map (bimap State State) [(1, 2), (2, 3), (3, 4), (3, 1), (4, 3)],
-      labeling = labels
+    { states = map State [1 .. 4]
+    , transitions = map (bimap State State) [(1, 2), (2, 3), (3, 4), (3, 1), (4, 3)]
+    , labeling = labels
     }
   where
     labels =
       Map.fromList
-        [ (State 1, Set.fromList []),
-          (State 2, Set.fromList []),
-          (State 3, Set.fromList [Prop "p"]),
-          (State 4, Set.fromList [Prop "p"])
+        [ (State 1, Set.fromList [])
+        , (State 2, Set.fromList [])
+        , (State 3, Set.fromList [Prop "p"])
+        , (State 4, Set.fromList [Prop "p"])
         ]
 nestedSystem :: TransitionSystem
 nestedSystem =
   TransitionSystem
-    { states = map State [0 .. 2],
-      transitions = map (bimap State State) [(0, 0), (0, 1), (1, 2), (2, 2)],
-      labeling = labels
+    { states = map State [0 .. 2]
+    , transitions = map (bimap State State) [(0, 0), (0, 1), (1, 2), (2, 2)]
+    , labeling = labels
     }
   where
     labels =
       Map.fromList
-        [ (State 0, Set.fromList []),
-          (State 1, Set.fromList [Prop "p"]),
-          (State 2, Set.fromList [])
+        [ (State 0, Set.fromList [])
+        , (State 1, Set.fromList [Prop "p"])
+        , (State 2, Set.fromList [])
         ]
 
 -- TODO to do model checking, I need to implement EX
@@ -97,22 +96,23 @@ data Mu
   | Or Mu Mu
   | And Mu Mu
   | Not Mu
-  -- TODO I need to be able to um.. get the variable from fix in the formula..
-  | Ex Mu -- a property is just a set of states that satisfy the property
-  deriving stock Show
+  | -- TODO I need to be able to um.. get the variable from fix in the formula..
+    Ex Mu -- a property is just a set of states that satisfy the property
+  deriving stock (Show)
+
 -- Fix (Or (P p) (Ex p (ef p)))
 
 -- TODO figure out how to do nested fixpoints..
 
-
 -- monadic fix
 
 type MuM = StateT (Map Text (Set State)) (Reader TransitionSystem)
+
 -- interprets a formula into a set of states
 -- TODO Maybe I can also use a ReaderT or Reader alg-eff?
 interpretMu :: Mu -> MuM (Set State)
 interpretMu (P sts) = return sts -- a "property" is just passed a set of states
-interpretMu (Or s1 s2) =   Set.union <$> interpretMu s1 <*> interpretMu s2
+interpretMu (Or s1 s2) = Set.union <$> interpretMu s1 <*> interpretMu s2
 interpretMu (And s1 s2) = Set.intersection <$> interpretMu s1 <*> interpretMu s2
 interpretMu (Ex s) = do
   t <- ask
@@ -121,23 +121,23 @@ interpretMu (Ex s) = do
   return (trace ("ex: " <> show s <> ", " <> show ex) ex)
 interpretMu (Var t) = do
   m <- get
-  let v =  m Map.! t
-  return (trace (show t <> "is: " <> show v) v)  -- it'll error if the var is unbound but whatever
--- depends whether greatest or smallest, I guess?
--- least fixpoint
+  let v = m Map.! t
+  return (trace (show t <> "is: " <> show v) v) -- it'll error if the var is unbound but whatever
+  -- depends whether greatest or smallest, I guess?
+  -- least fixpoint
 interpretMu (Fix var arg f) = do
   modify (Map.insert var arg) -- set the var to empty
   new <- interpretMu (trace (show f) f)
-  if trace ("fix new: " <> show new ) new == arg then return arg else interpretMu (Fix var new f)
+  if trace ("fix new: " <> show new) new == arg then return arg else interpretMu (Fix var new f)
 interpretMu (Not m) = do
-    s <- interpretMu m
-    t <- ask
-    let sts = Set.fromList $ states t
-    let not =  Set.difference  sts s
-    return (trace ("not: " <> show m <> " , " <> show not) not)
+  s <- interpretMu m
+  t <- ask
+  let sts = Set.fromList $ states t
+  let not = Set.difference sts s
+  return (trace ("not: " <> show m <> " , " <> show not) not)
 
 runMu :: TransitionSystem -> MuM (Set State) -> Set State
-runMu  t f = fst $ runReader (runStateT f Map.empty) t
+runMu t f = fst $ runReader (runStateT f Map.empty) t
 
 ef :: TransitionSystem -> Set State -> Set State
 ef t p = runMu t $ interpretMu $ Fix "y" Set.empty (Or (P p) (Ex (Var "y")))
@@ -145,10 +145,17 @@ eg :: TransitionSystem -> Set State -> Set State
 eg t p = runMu t $ interpretMu $ Fix "y" Set.empty (And (P p) (Ex (Var "y")))
 
 egf :: TransitionSystem -> Set State -> Set State
-egf t p = runMu t $ interpretMu $ Fix "y" (states t |> Set.fromList) (Fix "z" Set.empty
-                                                                      (And (Or (P p) (Ex (Var "z"))) (Ex (Var "y"))))
-
-
+egf t p =
+  runMu t $
+    interpretMu $
+      Fix
+        "y"
+        (states t |> Set.fromList)
+        ( Fix
+            "z"
+            Set.empty
+            (And (Or (P p) (Ex (Var "z"))) (Ex (Var "y")))
+        )
 
 -- ef t p = runReader $ (runStateT $ interpretMu $ Fix "y" (Or (P p) (Ex (Var "y")))) t
 
@@ -176,35 +183,31 @@ eg' p t = if n == trace (show p) p then n else next
     n = Set.intersection p e
     next = Set.intersection n (ef' n t)
 
-
 -- recurse...???
 -- AX = not EX (not p)
 ax :: Mu -> Mu
 ax p = Not (Ex (Not p))
+
 -- We can use "disjoint" with the set of all states to get "not"
 
 -- also nested fixpoints, not sure how to do that yet?
 
 --  I can just pass in "q" to start off the recursion
 
-
 -- TODO convert a transition system into a boolean formula - and print it out using diagrams
 
+{- |
+ Main entry point.
 
-
-
-
--- |
--- Main entry point.
---
--- The `, run` script will invoke this function.
+ The `, run` script will invoke this function.
+-}
 main :: IO ()
 main = do
   -- Boolean.bmain
-  --greatest fixpoint
+  -- greatest fixpoint
   let p = P (sat (Prop "p") p4System)
   let q = P (sat (Prop "q") p4System)
-  
+
   let f1 = Fix "y" (states p4System |> Set.fromList) (And p (Ex (Var "y")))
   let f2 = Fix "y" Set.empty (Or q (And p (ax (Var "y"))))
   let f3 = Fix "y" Set.empty (Fix "z" (states p4System |> Set.fromList) (Or (And q (Ex (Var "z"))) (Ex (Var "y"))))
@@ -212,11 +215,11 @@ main = do
   -- runMu p4System (interpretMu f1) |> show |> putTextLn
   -- runMu p4System (interpretMu f2) |> show |> putTextLn
   runMu p4System (interpretMu f3) |> show |> putTextLn
-    -- egf  nestedSystem (sat (Prop "p") nestedSystem) |> show |> putTextLn
-    -- runMu nestedSystem (interpretMu (Not (P (sat (Prop "p") nestedSystem)))) |> show |> putTextLn
-    -- runMu p4System (interpretMu (And (P (sat (Prop "p") p4System)) (Ex (Var "")))) |> show |> putTextLn
-    --     -- putTextLn "---"
-    -- eg'   (sat (Prop "p") exSystem) p1System |> show |> putTextLn
+
+-- egf  nestedSystem (sat (Prop "p") nestedSystem) |> show |> putTextLn
+-- runMu nestedSystem (interpretMu (Not (P (sat (Prop "p") nestedSystem)))) |> show |> putTextLn
+-- runMu p4System (interpretMu (And (P (sat (Prop "p") p4System)) (Ex (Var "")))) |> show |> putTextLn
+--     -- putTextLn "---"
+-- eg'   (sat (Prop "p") exSystem) p1System |> show |> putTextLn
 
 -- transClosure (transitions p1System) (State 3) |> show |> putTextLn
-  

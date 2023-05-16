@@ -1,7 +1,7 @@
-module Prelude
-    ( module Relude,
-      module Flow
-    ) where
+module Prelude (
+  module Relude,
+  module Flow,
+) where
 
-import Relude
 import Flow
+import Relude

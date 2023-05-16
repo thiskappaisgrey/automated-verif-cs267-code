@@ -71,30 +71,37 @@ common shared
   build-depends:
     , aeson
     , async
-   , base-noprelude          >=4.13.0.0 && <4.18.0.0.0
+    , base-noprelude    >=4.13.0.0 && <4.18.0.0.0
     , data-default
+    , diagrams
+    , diagrams-contrib
+    , diagrams-lib
+    , diagrams-svg
     , directory
+    , effectful
     , filepath
+    , flow
     , optics-core
     , profunctors
-    , relude        >=1.0
+    , relude            >=1.0
     , shower
     , time
     , with-utf8
-    , effectful
-    , flow
-    , diagrams
-    , diagrams-lib
-    , diagrams-contrib
-    , diagrams-svg
+
   default-language:   Haskell2010
+
 library
-  import:  shared
-  exposed-modules: Prelude, Boolean, TransitionSystem
+  import:          shared
+  exposed-modules:
+    Boolean
+    Prelude
+    TransitionSystem
+
   hs-source-dirs:  lib
+
 executable ltl
-  import:  shared
-  main-is: Main.hs
-  hs-source-dirs:    src
+  import:          shared
+  main-is:         Main.hs
+  hs-source-dirs:  src
   exposed-modules: Main
-  build-depends: ltl
+  build-depends:   ltl
