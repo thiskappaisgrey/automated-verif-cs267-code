@@ -1,6 +1,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
-module Boolean where
+module Main where
 
 import Data.List (foldl1)
 import Data.Map.Strict qualified as Map
