@@ -83,14 +83,14 @@ makeLenses ''DataItem
 -- instance Show LTLAtom where
 labAtom (LTrue) = "T"
 labAtom (LFalse) = "F"
-labAtom (ANot t) = "!" <> labAtom t
+labAtom (ANot t) = "&not;" <> labAtom t
 labAtom (Prop t) = t
 -- instance Show LTLNorm where
 labNorm (U t1 t2) = "(" <> labNorm t1 <> " U " <> labNorm t2 <> ")"
 labNorm (R t1 t2) = "(" <> labNorm t1 <> " R " <> labNorm t2 <>")"
 labNorm (X t1) = "(" <> " X " <> labNorm t1 <>")"
-labNorm (Or t1 t2) = "(" <> labNorm t1 <> " || " <> labNorm t2 <> ")"
-labNorm (And t1 t2) = "(" <> labNorm t1 <> " && " <> labNorm t2 <> ")"
+labNorm (Or t1 t2) = "(" <> labNorm t1 <> " &or; " <> labNorm t2 <> ")"
+labNorm (And t1 t2) = "(" <> labNorm t1 <> " &and; " <> labNorm t2 <> ")"
 labNorm (Atomic a) = labAtom a
 
 label :: DataItem -> String
@@ -241,8 +241,8 @@ expand q
               q1 = DataItem {
                     _incoming = q ^. incoming,
                     _old = (q ^. old) `Set.union` hok,
-                    _new = ((q ^. new) `Set.difference` hok) `Set.union` Set.fromList [h] ,
-                    _next = (q ^. next)
+                    _new = ((q ^. new) `Set.difference` hok) ,
+                    _next = (q ^. next) `Set.union` Set.fromList [h] 
                               }
             k <- get @Int
             db <- get @Database
@@ -317,7 +317,7 @@ runOutputGraph = interpret \case
   Output (fn, db) -> do
     k <- get @Int
     liftIO $ do
-      writeDBToGraph db ("./output" <> "/" <> fn <> "-" <> show k <> ".png")
+      writeDBToGraph db ("./output1" <> "/" <> fn <> "-" <> show k <> ".png")
     -- TODO print the graph..
     -- putStrLn "hello"
   
@@ -360,13 +360,13 @@ writeDBToGraph' db file =
 myMain :: IO ()
 myMain = runIOE $ do
   -- p U (q ∧ X (¬q)) 
-  (_, db) <- runInterpretExpand $ createGraph   ((Atomic (Prop "p")) `U` ((Atomic (Prop "q")) `And` X (Atomic (ANot (Prop "q")))))
+  (_, db) <- runInterpretExpand $ createGraph  ((Atomic (Prop "a")) `And` (Atomic (Prop "b")))  -- ((Atomic (Prop "p")) `U` ((Atomic (Prop "q")) `And` X (Atomic (ANot (Prop "q")))))
   -- liftIO $ putStrLn $ label (db Map.! 1)
   liftIO $ do
     print db
     print "then: "
-    writeDBToGraph' db "./output/out.png"
-    writeDBToGraph db "./output/out1.png"
+    writeDBToGraph' db "./output1/out.png"
+    writeDBToGraph db "./output1/out1.png"
   return ()
 
 isAtomic :: LTLNorm -> Bool
